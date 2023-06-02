@@ -1,3 +1,7 @@
+//
+// Created by 86159 on 2023-06-01.
+// LED 闪烁和串口通信   信号接收及反应部分
+//
 #include <Arduino.h>
 #include "msp432p401r.h"
 void setup() {

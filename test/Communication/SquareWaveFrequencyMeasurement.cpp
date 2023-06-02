@@ -1,3 +1,8 @@
+//
+// Created by 86159 on 2023-06-02.
+// 方波测频   信号接收及计算部分
+//
+
 #include <Arduino.h>
 #include "msp432p401r.h"
 
