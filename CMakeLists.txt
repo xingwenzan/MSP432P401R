@@ -33,4 +33,6 @@ add_custom_target(
 add_executable(Z_DUMMY_TARGET ${SRC_LIST}
         test/Init/LedBlinkAndSerialOut.cpp
         test/Communication/LedBlinkAndSerial.cpp
-        test/Communication/SquareWaveFrequencyMeasurement.cpp)
+        test/Communication/SquareWaveFrequencyMeasurement.cpp
+        lib/TM1638/src/TM1638.cpp
+        test/Init/TM1638helloWorld.cpp)
