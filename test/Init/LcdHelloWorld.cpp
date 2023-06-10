@@ -1,5 +1,6 @@
 //
 // Created by 86159 on 2023-06-10.
+// y*x = 240*320
 //
 #include <Arduino.h>
 #include "../lib/ili9320Test/ili9320.h"
