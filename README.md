@@ -12,6 +12,8 @@
     - [初始化类程序](test/Init)
         - [LED 灯闪烁及串口输出](test/Init/LedBlinkAndSerialOut.cpp)
         - [TM1638 LED & KEY 测试代码](test/Init/TM1638helloWorld.cpp)
+        - [3.5 TFT Color LCD Module Rev 1.0 测试例程](test/Init/LcdHelloWorld.cpp)
+        - 
     - [通信类程序](test/Communication) &#x2002; 与 ArduinoNano 通信运行的程序，程序另一半见 ArduinoNano 项目同名程序
         - [LED 闪烁及串口通信](test/Communication/LedBlinkAndSerial.cpp)
         - [方波测频](test/Communication/SquareWaveFrequencyMeasurement.cpp)

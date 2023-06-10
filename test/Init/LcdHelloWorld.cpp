@@ -1,11 +1,14 @@
+//
+// Created by 86159 on 2023-06-10.
+//
 #include <Arduino.h>
 #include "../lib/ili9320Test/ili9320.h"
 #include "../lib/ili9320Test/ili9320_api.h"
 
 #define LED_BUILTIN 78
 u8 test1[] = {"0123456789ABCDEF"};
-//u8 test2[] = {"2017Äê7ÔÂ4ÈÕ²âÊÔÍ¨¹ı8/16Î»Ä£Ê½£¬2023Äê5ÔÂ29ÈÕ²âÊÔÍ¨¹ı4ÏßSPIÎ»Ä£Ê½¡ª¡ªÁÉÄş´óÑ§Àîğ©Óî¡£"};
-//u8 test3[] = {"ÍêÕûÇøÎ»Âë16*16×Ö¿â£¬¿ÉÒÔÏÔÊ¾ÌØÊâ×Ö·û£º¡ï¡ñ¦Á¦Â¦Ã¢ñ¢ò¢ó¤µ¤·¤¹¡Æ¡Ç¡Ö¡Ù"};
+//u8 test2[] = {"2017å¹´7æœˆ4æ—¥æµ‹è¯•é€šè¿‡8/16ä½æ¨¡å¼ï¼Œ2023å¹´5æœˆ29æ—¥æµ‹è¯•é€šè¿‡4çº¿SPIä½æ¨¡å¼â€”â€”è¾½å®å¤§å­¦æçš“å®‡ã€‚"};
+//u8 test3[] = {"å®Œæ•´åŒºä½ç 16*16å­—åº“ï¼Œå¯ä»¥æ˜¾ç¤ºç‰¹æ®Šå­—ç¬¦ï¼šâ˜…â—Î±Î²Î³â… â…¡â…¢ã•ã—ã™âˆ‘âˆâ‰ˆâ‰ "};
 
 void setup() {
     // put your setup code here, to run once:
@@ -25,8 +28,8 @@ void loop() {
     // put your main code here, to run repeatedly:
 
     ili9320_Test();
-    GUI_Text(0,0,test1,16,BLACK,WHITE,0);   //ascii×Ö·ûÏÔÊ¾
-    GUI_Square(20,30,40,YELLOW,0);          //Õı·½ĞÎ
+    GUI_Text(0,0,test1,16,BLACK,WHITE,0);   //asciiå­—ç¬¦æ˜¾ç¤º
+    GUI_Square(20,30,40,YELLOW,0);          //æ­£æ–¹å½¢
     GUI_Rectangle(70,30,120,70,YELLOW,1);
     GUI_Line(0,0,240,240,GREEN);
     GUI_Circle(240,140,50,MAGENTA,1);
@@ -40,8 +43,8 @@ void loop() {
     while(1)
     {
         digitalWrite(LED_BUILTIN, HIGH);   // turn the LED on (HIGH is the voltage level)
-        delay(1000);                       // wait for a second
+        //delay(1000);                       // wait for a second
         digitalWrite(LED_BUILTIN, LOW);    // turn the LED off by making the voltage LOW
-        delay(1000);                       // wait for a second
+        //delay(1000);                       // wait for a second
     }
 }
