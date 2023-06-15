@@ -1,10 +1,13 @@
 //
 // Created by 86159 on 2023-06-02.
 // 方波测频   信号接收及计算部分
+// 失败
 //
 
 #include <Arduino.h>
 #include "msp432p401r.h"
+
+#define inPin 7
 
 volatile int cnt;
 
@@ -29,32 +32,32 @@ int getF(){
 unsigned long getT() {
     unsigned long t1, t2;
     int u1, u2;
-    u1 = digitalRead(13);
+    u1 = digitalRead(inPin);
     delay(1);
-    u2 = digitalRead(13);
+    u2 = digitalRead(inPin);
     while (!(u1 == HIGH && u2 == LOW)) {
-        u1 = digitalRead(13);
+        u1 = digitalRead(inPin);
         delay(1);
-        u2 = digitalRead(13);
+        u2 = digitalRead(inPin);
     }
     t1 = micros();
 
-    u1 = digitalRead(13);
+    u1 = digitalRead(inPin);
     delay(1);
-    u2 = digitalRead(13);
+    u2 = digitalRead(inPin);
     while (!(u1 == HIGH && u2 == LOW)) {
-        u1 = digitalRead(13);
+        u1 = digitalRead(inPin);
         delay(1);
-        u2 = digitalRead(13);
+        u2 = digitalRead(inPin);
     }
     t2 = micros();
     return t2 - t1;
 }
 
 void setup() {
-    pinMode(13, INPUT);
+    pinMode(inPin, INPUT);
     Serial.begin(9600);
-    attachInterrupt(digitalPinToInterrupt(13),getPulse,FALLING);
+    attachInterrupt(digitalPinToInterrupt(inPin),getPulse,FALLING);
 }
 
 void loop() {
@@ -63,5 +66,5 @@ void loop() {
     Serial.println(t);
     Serial.println(f);
     Serial.println(" ");
-//    delay(3000);
+    delay(3000);
 }

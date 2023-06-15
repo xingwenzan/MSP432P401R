@@ -40,4 +40,6 @@ add_executable(Z_DUMMY_TARGET ${SRC_LIST}
         test/Init/LcdHelloWorld.cpp
         test/Init/KeypadAndLcd1602Init.cpp
         test/Init/SinDraw.cpp
-        test/Tmp/FFT.cpp)
+        test/Tmp/FFT.cpp
+        lib/TimerOne/TimerOne.h
+)

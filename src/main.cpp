@@ -5,7 +5,4 @@ void setup() {
 }
 
 void loop() {
-    int v = digitalRead(2);
-    Serial.println(v);
-    delay(2000); //µÈ´ý2Ãë
 }
