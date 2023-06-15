@@ -39,7 +39,7 @@ add_executable(Z_DUMMY_TARGET ${SRC_LIST}
         lib/ili9320Test/ili9320.h
         test/Init/LcdHelloWorld.cpp
         test/Init/KeypadAndLcd1602Init.cpp
-        test/Init/SinDraw.cpp
+        test/Init/DrawAndKeypad.cpp
         test/Tmp/FFT.cpp
-        lib/TimerOne/TimerOne.h
+        test/Tmp/tmp.cpp
 )

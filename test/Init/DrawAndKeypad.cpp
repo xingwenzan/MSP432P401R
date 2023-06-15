@@ -1,7 +1,4 @@
 //
-// Created by 86159 on 2023-06-13.
-//
-//
 // Created by 86159 on 2023-06-12.
 //
 #include <Arduino.h>
@@ -13,6 +10,8 @@
 u8 test1[] = {"0123456789ABCDEF"};
 u8 sineWave[256];
 u8 keyOut[30];
+u8 blank[30];
+int idx = 0;
 
 const byte ROWS = 4; // 4行
 const byte COLS = 4; // 4列
@@ -46,8 +45,11 @@ void lcdText(){
     LCD_ShowString(0,135,300,100,24,test1,RED,MAGENTA,1);
     LCD_ShowString(0,165,300,100,32,test1,YELLOW,CYAN,1);
     delay(1000);
-    ili9320_Clear(WHITE);
-    for (int i = 0; i < 255; ++i) {
+    ili9320_Clear(WHITE);   // 清屏
+    for (int i = 0; i < 256; ++i) {   // 记录波
+        sineWave[i] = 120*sin(2*PI*i/256)+120;
+    }
+    for (int i = 0; i < 255; ++i) {   // 画波
         GUI_Line(i,sineWave[i],i+1,sineWave[i+1],RED);
     }
     u8 string[] = {"!@#$%^&*()[]{};:'',.<>/?"};
@@ -67,15 +69,20 @@ void setup() {
     ili9320_Initializtion();
     digitalWrite(LED_BUILTIN, LOW);
     //Serial.print("ili9320_Initializtion() OK");
-    for (int i = 0; i < 256; ++i) {
-        sineWave[i] = 120*sin(2*PI*i/256)+120;
-    }
     lcdText();
+    for (int i = 0; i < 30; ++i) {
+        blank[i] = ' ';
+    }
 }
 
 void loop() {
     // put your main code here, to run repeatedly:
-
-
-
+    u8 key = keypad.getKey();
+    if(key && key!='D'){
+        keyOut[idx++] = key;
+        GUI_Text(0,0,keyOut,idx,BLACK,WHITE,0);   //ascii字符显示
+    } else if (key=='D'){
+        GUI_Text(0,0,blank,idx,BLACK,WHITE,0);   //ascii字符显示
+        idx = 0;
+    }
 }

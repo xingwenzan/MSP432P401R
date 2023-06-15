@@ -1,13 +1,12 @@
 //
 // Created by 86159 on 2023-06-15.
-// µ÷½Ú ing
 //
 #include "Arduino.h"
 #include "../lib/LiquidCrystal_I2C/LiquidCrystal_I2C.h"
 #include "../lib/Keypad/src/Keypad.h"
 #include "../lib/arduinoFFT/src/arduinoFFT.h"
-//#include "../lib/ili9320Test/ili9320.h"
-//#include "../lib/ili9320Test/ili9320_api.h"
+#include "../lib/ili9320Test/ili9320.h"
+#include "../lib/ili9320Test/ili9320_api.h"
 
 typedef struct {
     int waveType;
@@ -17,12 +16,18 @@ typedef struct {
     float waveAmpl;
     int waveSamples;
     int photo;
-} WaveformParameters;   // ²¨ĞÎ²ÎÊı½á¹¹Ìå
+} WaveformParameters;   // æ³¢å½¢å‚æ•°ç»“æ„ä½“
 
-const byte ROWS = 4; // 4ĞĞ
-const byte COLS = 4; // 4ÁĞ
+typedef struct {
+    unsigned long hours;
+    unsigned long minutes;
+    unsigned long seconds;
+} Time;   // æ—¶é—´ç»“æ„ä½“
 
-// ¶¨Òå¼üÅÌÉÏµÄ°´¼ü×Ö·û
+const byte ROWS = 4; // 4è¡Œ
+const byte COLS = 4; // 4åˆ—
+
+// å®šä¹‰é”®ç›˜ä¸Šçš„æŒ‰é”®å­—ç¬¦
 char keys[ROWS][COLS] = {
         {'1', '2', '3', 'A'},
         {'4', '5', '6', 'B'},
@@ -30,48 +35,79 @@ char keys[ROWS][COLS] = {
         {'*', '0', '#', 'D'}
 };
 
-// ½«ĞĞÒı½ÅÁ¬½Óµ½ Arduino Nano µÄÊı×ÖÒı½Å
+// å°†è¡Œå¼•è„šè¿æ¥åˆ° Arduino Nano çš„æ•°å­—å¼•è„š
 byte rowPins[ROWS] = {23, 24, 25, 26};
 
-// ½«ÁĞÒı½ÅÁ¬½Óµ½ Arduino Nano µÄÊı×ÖÒı½Å
+// å°†åˆ—å¼•è„šè¿æ¥åˆ° Arduino Nano çš„æ•°å­—å¼•è„š
 byte colPins[COLS] = {27, 28, 29,30};
 
-// ³õÊ¼»¯¼üÅÌ
+// åˆå§‹åŒ–é”®ç›˜
 Keypad keypad = Keypad(makeKeymap(keys), rowPins, colPins, ROWS, COLS);
 
-// ³õÊ¼»¯ 1602 ÉèÖÃ 1602 Òº¾§ÏÔÊ¾ÆÁµÄ I2C µØÖ·£¬¿í¶ÈºÍ¸ß¶È
+// åˆå§‹åŒ– 1602 è®¾ç½® 1602 æ¶²æ™¶æ˜¾ç¤ºå±çš„ I2C åœ°å€ï¼Œå®½åº¦å’Œé«˜åº¦
 LiquidCrystal_I2C lcd(0x27, 16, 2);
 
-// ³õÊ¼»¯²¨ĞÎ²ÎÊı
+// åˆå§‹åŒ–æ³¢å½¢å‚æ•°
 WaveformParameters wp;
 
-// ²¨ĞÎ´¢´æ
+// åˆå§‹åŒ–æ—¶é—´
+Time time = {0, 0, 0,};
+unsigned long previousMillis = 0;
+
+/*
+ * åŠŸèƒ½åˆ—è¡¨
+ * 0 ä¸€èˆ¬æ—¶é’Ÿ - å¸¸æ€è¾“å‡º
+ * 1 æ³¢å½¢å‘ç”Ÿå™¨
+ * 2 æ¨¡æ‹Ÿç§¤
+ * 3 æ—¶é—´æ ¡å‡†
+ * 4 é—¹é’Ÿè®¾ç½®
+ */
+String functionList[] = {"Clock", "WaveGenerator", "AnalogScale","CalibrateTime","AlarmClock"};
+
+// æ³¢å½¢å‚¨å­˜
 double wave[128];
 int idx = 0;
 
-// ²ÎÊıÊäÈë·½·¨
+// é—¹é’Ÿå‚¨å­˜
+Time alarmClockOn;   // é—¹é’Ÿå¼€å¯æ—¶é—´
+Time alarmClockOff;   // é—¹é’Ÿå…³é—­æ—¶é—´
+
+// ç§¤ç§°é‡
+int weight = 0;
+
+// åŠŸèƒ½æ¨¡å¼
+int feature = 0;
+
+// é‡è½½ ==
+bool operator==(const Time & lhs, const Time & rhs) {
+    return (lhs.hours == rhs.hours &&
+            lhs.minutes == rhs.minutes &&
+            lhs.seconds == rhs.seconds);
+}
+
+// å‚æ•°è¾“å…¥æ–¹æ³•
 String parameterRead() {
     /*
-     * °´¼ü×Ö·ûº¬Òå¶¨Òå
-     * Êı×Ö - Êı×Ö
-     * A - ¼Ó/ÉÏ£¨¼Ó¼õ/ÉÏÏÂ£©
-     * B - ÓÒ£¨×óÓÒ£©
-     * C - Çå¿Õ/¹éÁã/»Ö¸´Ä¬ÈÏÖµ
-     * D - ÍË¸ñ/É¾³ı£¨backspace/delete)
-     * * - Ğ¡Êıµã/Õı¸ººÅ
-     * # - È·ÈÏ
+     * æŒ‰é”®å­—ç¬¦å«ä¹‰å®šä¹‰
+     * æ•°å­— - æ•°å­—
+     * A - åŠ /ä¸Šï¼ˆåŠ å‡/ä¸Šä¸‹ï¼‰
+     * B - å³ï¼ˆå·¦å³ï¼‰
+     * C - æ¸…ç©º/å½’é›¶/æ¢å¤é»˜è®¤å€¼
+     * D - é€€æ ¼/åˆ é™¤ï¼ˆbackspace/delete)
+     * * - å°æ•°ç‚¹/æ­£è´Ÿå·
+     * # - ç¡®è®¤
      */
     digitalWrite(RED_LED, LOW);
-    // ½âÎöÊäÈëÃüÁî
+    // è§£æè¾“å…¥å‘½ä»¤
     String tmp = "";
-    int point = 0;   // tmp µÄË÷Òı
+    int point = 0;   // tmp çš„ç´¢å¼•
     while (true) {
         lcd.setCursor(point, 1);
         lcd.blink();
         lcd.cursor();
-        // ¶ÁÈ¡°´¼üÊäÈë£¬¸³ÖµµÄÖ÷Ìå²¿·Ö
+        // è¯»å–æŒ‰é”®è¾“å…¥ï¼Œèµ‹å€¼çš„ä¸»ä½“éƒ¨åˆ†
         char key = keypad.getKey();
-        // ÅĞ¶¨ÊäÈë½øĞĞ²Ù×÷
+        // åˆ¤å®šè¾“å…¥è¿›è¡Œæ“ä½œ
         if (isdigit(key)) {
             if (point < tmp.length()) {
                 tmp[point] = key;
@@ -137,9 +173,31 @@ String parameterRead() {
     }
 }
 
-// ÆµÆ×Í¼Êı¾İ»ñµÃ
-void fft() {   // ½á¹ûÓĞÎó
-    // ³õÊ¼»¯ FFT ¶ÔÏó
+// åŠŸèƒ½é€‰æ‹©æ–¹æ³•
+int featureSelection() {
+    lcd.clear();
+    lcd.setCursor(0, 0);
+    lcd.print("Catalogs");
+    int i = 0;
+    lcd.setCursor(0, 1);
+    lcd.print(functionList[i]);
+    while (true) {
+        char key = keypad.getKey();
+        if (key == '#') {
+            return i;
+        } else if (key=='*') {
+            lcd.setCursor(0, 1);
+            lcd.print("                ");
+            i = (i + 1) % 5;
+            lcd.setCursor(0, 1);
+            lcd.print(functionList[i]);
+        }
+    }
+}
+
+// é¢‘è°±å›¾æ•°æ®è·å¾—
+void fft() {   // ç»“æœæœ‰è¯¯
+    // åˆå§‹åŒ– FFT å¯¹è±¡
     double vImag[wp.waveSamples];
     memset(vImag, 0, wp.waveSamples * sizeof(double));
     arduinoFFT FFT = arduinoFFT(wave, vImag, wp.waveSamples, wp.samplingFreq);
@@ -147,7 +205,7 @@ void fft() {   // ½á¹ûÓĞÎó
 //    Serial.print("Free memory: ");
 //    Serial.print(availableMemory);
 //    Serial.println(" bytes");
-    /* ¶ÔÊı¾İÖ´ĞĞ FFT */
+    /* å¯¹æ•°æ®æ‰§è¡Œ FFT */
     FFT.Windowing(FFT_WIN_TYP_HAMMING, FFT_FORWARD);
     FFT.Compute(FFT_FORWARD);
     FFT.ComplexToMagnitude();
@@ -155,7 +213,7 @@ void fft() {   // ½á¹ûÓĞÎó
 //    Serial.print("Free memory: ");
 //    Serial.print(availableMemory);
 //    Serial.println(" bytes");
-    /* Êä³öÆµÆ×Í¼Êı¾İµ½´®¿Ú»æÍ¼Æ÷ */
+    /* è¾“å‡ºé¢‘è°±å›¾æ•°æ®åˆ°ä¸²å£ç»˜å›¾å™¨ */
     for (int i = 0; i < (wp.waveSamples >> 1); i++) {
 //        double frequency = (i * 1.0 * samplingFreq) / waveSamples;
 //        Serial.print(frequency);
@@ -166,21 +224,21 @@ void fft() {   // ½á¹ûÓĞÎó
 //    while (1);
 }
 
-// ²¨ĞÎ»ñÈ¡
+// æ³¢å½¢è·å–
 void getWave() {
     idx = 0;
     for (int i = 0; i < wp.waveSamples; i++) {
-        float t = (float) i / wp.samplingFreq;  // ¼ÆËãµ±Ç°Ê±¼ä
-        double v = wp.waveDc;  // ¼ÓÉÏÖ±Á÷·ÖÁ¿
-        if (wp.waveType == 0) {   // ÕıÏÒ²¨
+        float t = (float) i / wp.samplingFreq;  // è®¡ç®—å½“å‰æ—¶é—´
+        double v = wp.waveDc;  // åŠ ä¸Šç›´æµåˆ†é‡
+        if (wp.waveType == 0) {   // æ­£å¼¦æ³¢
             v += sin(2 * PI * t * wp.waveFreq) * wp.waveAmpl;
-        } else if (wp.waveType == 1) {   // ·½²¨
+        } else if (wp.waveType == 1) {   // æ–¹æ³¢
             v += wp.waveAmpl * (fmod(t * wp.waveFreq, 1) < 0.5 ? -1 : 1);
-        } else if (wp.waveType == 2) {   // Èı½Ç²¨
+        } else if (wp.waveType == 2) {   // ä¸‰è§’æ³¢
             double trianglePhase = fmod(t * wp.waveFreq, 1);
             v += wp.waveAmpl * (2 * fabs(2 * trianglePhase - 1) - 1);
 //            v += waveAmpl * (trianglePhase < 0.5 ? 4 * trianglePhase - 1 : 3 - 4 * trianglePhase);
-        } else if (wp.waveType == 3) {   // ¾â³İ²¨
+        } else if (wp.waveType == 3) {   // é”¯é½¿æ³¢
             double sawtoothPhase = fmod(t * wp.waveFreq, 1);
             v += wp.waveAmpl * (2 * sawtoothPhase - 1);
         }
@@ -189,7 +247,7 @@ void getWave() {
     }
 }
 
-// ²¨ĞÎ»æÖÆ
+// æ³¢å½¢ç»˜åˆ¶
 void draw() {
     if (wp.photo == 0) {
         digitalWrite(BLUE_LED, LOW);
@@ -202,12 +260,12 @@ void draw() {
     }
 }
 
-// ²¨ĞÎ²ÎÊıÊäÈë
+// æ³¢å½¢å‚æ•°è¾“å…¥
 void waveSet() {
-    // ½âÎöÊäÈëÃüÁî
-    int parameter = 0;   //ÕıÔÚÊäÈëµÄ²ÎÊı 0~6 ·Ö±ğ¶ÔÓ¦±äÁ¿¶¨ÒåÀïµÄÆß¸ö²ÎÊı
+    // è§£æè¾“å…¥å‘½ä»¤
+    int parameter = 0;   //æ­£åœ¨è¾“å…¥çš„å‚æ•° 0~6 åˆ†åˆ«å¯¹åº”å˜é‡å®šä¹‰é‡Œçš„ä¸ƒä¸ªå‚æ•°
     while (parameter <= 6) {
-        // lcd ÏÔÊ¾µ±Ç°ÕıÔÚ¶ÁÈ¡µÄ²ÎÊı
+        // lcd æ˜¾ç¤ºå½“å‰æ­£åœ¨è¯»å–çš„å‚æ•°
         lcd.clear();
         lcd.setCursor(0, 0);
         switch (parameter) {
@@ -265,15 +323,108 @@ void waveSet() {
     }
 }
 
+// æ¨¡æ‹Ÿç§¤åŠŸèƒ½
+void analogScale(){
+    lcd.setCursor(0,1);
+//    int tmp = analogRead(A11);
+    // ç”µä½å™¨ç”µå‹ä¸ç¨³ï¼Œå‡ºæ­¤ä¸‹ç­–
+//    if(abs(weight-tmp)>25){weight = tmp;}
+    weight = analogRead(A11);
+    lcd.print("Weight: ");
+    lcd.print(weight);
+    lcd.print(" g  ");
+    delay(500);
+}
+
+// é—¹é’Ÿå“æ–¹æ³•
+void clockOn(){
+    if (alarmClockOn == time){
+        lcd.noBacklight();
+        delay(500);
+        lcd.backlight();
+        delay(500);
+    }
+    if (alarmClockOff == time){
+        lcd.noBlink();
+    }
+}
+
+// æ—¶é’Ÿæ˜¾ç¤ºæ–¹æ³•
+void display() {
+    unsigned long currentMillis = millis();
+    // æ—¶é—´è¾“å‡º
+    if (currentMillis - previousMillis >= 1000) {
+        previousMillis = currentMillis;
+        time.seconds++;
+        if (time.seconds>=60){
+            time.minutes++;
+            time.seconds = 0;
+            if (time.minutes>=60){
+                time.hours = (time.hours+1)%24;
+                time.minutes = 0;
+            }
+        }
+        lcd.clear();
+        lcd.setCursor(0, 0);
+        if (time.hours < 10) { lcd.print(0); }
+        lcd.print(time.hours);
+        lcd.print(':');
+        if (time.minutes < 10) { lcd.print(0); }
+        lcd.print(time.minutes);
+        lcd.print(':');
+        if (time.seconds < 10) { lcd.print(0); }
+        lcd.print(time.seconds);
+    }
+    // é—¹é’Ÿ
+    clockOn();
+}
+
+// æ ¡å‡†æ—¶é—´åŠŸèƒ½æ–¹æ³•
+void calibrateTime(){
+    lcd.clear();
+    lcd.setCursor(0,0);
+    lcd.print("TrueHour:  ");
+    time.hours = parameterRead().toInt()%24;
+    lcd.print("TrueMinute:");
+    time.minutes = parameterRead().toInt()%60;
+    lcd.print("TrueSecond:");
+    time.seconds = parameterRead().toInt()%60;
+}
+
+// è®¾ç½®é—¹é’ŸåŠŸèƒ½æ–¹æ³•
+void setAlarmClock(int s){
+    lcd.clear();
+    lcd.setCursor(0,0);
+    // è®¾ç½®é—¹é’Ÿå¼€å¯æ—¶é—´
+    lcd.print("AlarmHour:  ");
+    alarmClockOn.hours = parameterRead().toInt() % 24;
+    lcd.print("AlarmMinute:");
+    alarmClockOn.minutes = parameterRead().toInt() % 60;
+    lcd.print("AlarmSecond:");
+    alarmClockOn.seconds = parameterRead().toInt() % 60;
+    // è®¾ç½®é—¹é’Ÿå…³é—­æ—¶é—´
+    alarmClockOff.seconds = alarmClockOn.seconds+s;
+    alarmClockOff.minutes = alarmClockOn.minutes;
+    alarmClockOff.hours = alarmClockOn.hours;
+    if (alarmClockOff.seconds>=60){
+        alarmClockOff.minutes++;
+        alarmClockOff.seconds = 0;
+        if (alarmClockOff.minutes>=60){
+            alarmClockOff.hours = (time.hours+1)%24;
+            alarmClockOff.minutes = 0;
+        }
+    }
+}
+
 void setup() {
-    // ³õÊ¼»¯´®ĞĞÍ¨ĞÅ
+    // åˆå§‹åŒ–ä¸²è¡Œé€šä¿¡
     Serial.begin(9600);
-    // ³õÊ¼»¯ LCD
+    // åˆå§‹åŒ– LCD
     lcd.init();
     lcd.backlight();
-    // ÔÚ LCD ÉÏÏÔÊ¾°´¼ü×Ö·û
+    // åœ¨ LCD ä¸Šæ˜¾ç¤ºæŒ‰é”®å­—ç¬¦
     lcd.setCursor(0, 0);
-    // ³õÊ¼»¯ LED µÆ
+    // åˆå§‹åŒ– LED ç¯
     pinMode(GREEN_LED, OUTPUT);
     digitalWrite(GREEN_LED, HIGH);
     pinMode(RED_LED, OUTPUT);
@@ -282,11 +433,41 @@ void setup() {
     digitalWrite(BLUE_LED, HIGH);
     pinMode(YELLOW_LED, OUTPUT);
     digitalWrite(YELLOW_LED, HIGH);
-    // ²ÎÊıÉèÖÃ
-    waveSet();
+    // åˆå§‹åŒ–ç”µä½å™¨
+    pinMode(A11,INPUT);
+    // åˆå§‹åŒ–èƒŒå…‰ç¯ï¼ˆé—¹é’Ÿï¼‰
+//    pinMode(13, INPUT);
 }
 
 void loop() {
-    getWave();
-    draw();
+    // åŠŸèƒ½é€‰æ‹©
+    if (keypad.getKey()) {
+        feature = featureSelection();
+        switch (feature) {
+            case 1:   // æ³¢å½¢å‘ç”Ÿå™¨
+                waveSet();
+                break;
+            case 3:   // æ—¶é—´æ ¡å‡†
+                calibrateTime();
+                break;
+            case 4:   // è®¾ç½®é—¹é’Ÿ
+                setAlarmClock(30);
+                break;
+            default:   // æ—¶é’Ÿ æ¨¡æ‹Ÿç§¤ - æ— é¡»ç‰¹æ®Šæ“ä½œ
+                break;
+        }
+    }
+    // å¸¸è§„è¿è¡Œ
+    display();
+    switch (feature) {
+        case 1:   // æ³¢å½¢å‘ç”Ÿå™¨
+            getWave();
+            draw();
+            break;
+        case 2:   // æ¨¡æ‹Ÿç§¤
+            analogScale();
+            break;
+        default:   // æ—¶é’Ÿ æ—¶é—´æ ¡å‡† è®¾ç½®é—¹é’Ÿ - æ— é¡»é¢å¤–å¸¸è§„æ“ä½œ
+            break;
+    }
 }
